@@ -4,11 +4,14 @@ import { ethers } from "ethers";
 import { contract_address } from "../contract/addresses";
 import { abi } from "../contract/abi";
 
-let provider = new ethers.BrowserProvider(window.ethereum);
-let signer = await provider.getSigner();
-const contract = new ethers.Contract(contract_address, abi, signer);
-
-const WriteAbleFun = () => {
+async function singer(){
+  let provider = new ethers.BrowserProvider(window.ethereum);
+  let signer = await provider.getSigner();
+  const contract = new ethers.Contract(contract_address, abi, signer);
+}
+singer()
+  
+  const WriteAbleFun = () => {
   const { address } = useAccount();
   const formItemLayout = {
     labelCol: { span: 24 },
