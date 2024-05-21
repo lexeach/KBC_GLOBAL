@@ -30,7 +30,7 @@ function WalletOption({
   }, [connector]);
 
   return (
-    <div className="d-flex justify-content-center input-section">
+    <div className="d-flex justify-content-center input-section-dfx">
       <button className="mybtn1" disabled={!ready} onClick={onClick}>
         Connect Wallet
       </button>

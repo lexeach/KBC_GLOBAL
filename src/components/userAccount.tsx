@@ -1,9 +1,10 @@
 // import { useAccount, useBalance } from "wagmi";
-import { useAccount } from "wagmi";
+import { useAccount, useDisconnect } from "wagmi";
+import { WalletOptions } from "../wallet-options";
 
 export default function UserAccount() {
   const { address, isConnecting, isDisconnected } = useAccount();
-
+  const { disconnect } = useDisconnect();
   // const { data } = useBalance({
   //   address,
   // });
@@ -19,7 +20,7 @@ export default function UserAccount() {
   if (isDisconnected)
     return (
       <div className="address">
-        <div className="head-card mx-5 mt-4 width-100">Offline</div>
+        <div className="head-card mx-5 mt-4 width-100"><WalletOptions /></div>
       </div>
     );
   return (
@@ -29,6 +30,7 @@ export default function UserAccount() {
           {formatted} {data?.symbol}
         </p> */}
         <p className="cards-title clr-w">{address}</p>
+        <button className="mybtn1" onClick={() => disconnect()}>Disconnect</button>
       </div>
     </div>
   );
