@@ -1,26 +1,124 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button, Form, Input } from "antd";
 import { useAccount, useReadContract } from "wagmi";
-// import { ethers } from "ethers";
 import { parseEther } from "ethers/utils";
-
 import { simulateContract, writeContract } from "@wagmi/core";
+import { formatEther } from "ethers/utils";
 
 import {
   contract_address,
   contract_abi,
-  contract_abi_second,
-  contract_address_second,
+  contract_current_admin,
+  contract_address_stable_coin_usdt,
+  contract_abi_stabel_coin_usdt,
+  contract_address_bnb_kbc,
+  contract_abi_bnb_kbc,
+  contract_price_pool,
 } from "../contract";
 import { config } from "../config";
 
+import { check_usd_price } from "../utils/convert-to-eth";
+
 const WriteAbleFun = () => {
   const [rewardInfoRank, setRewardInfoRank] = useState(0);
+  const [withDrawlVal, setWithDrawalVal] = useState(0);
+  const [withDrawlROI, setWithDrawalROI] = useState(0);
+  const [isOwner, setIsOwner] = useState(false);
+  const [kbcVal, setKbcVal] = useState<number>(1);
+  const [usdVal, setUsdVal] = useState<string>("");
+  const [nodeQ_val, setNodeQ_val] = useState<number>(1);
+
   const { address } = useAccount();
   const formItemLayout = {
     labelCol: { span: 24 },
     wrapperCol: { span: 24 },
   };
+
+  // USDT to KBC Conversion
+
+  const BalanceOfKBC = useReadContract({
+    abi: contract_abi_bnb_kbc,
+    address: contract_address_bnb_kbc,
+    functionName: "balanceOf",
+    args: [contract_price_pool],
+    config,
+  });
+
+  // console.log('BalanceOfKBC wai value', BalanceOfKBC.data);
+
+  // const KBC_bal = convert_eth_from_biginit(BalanceOfKBC.data as bigint)
+  // console.log('utils KBC_bal ', KBC_bal);
+  const BalanceOfStableCoin = useReadContract({
+    abi: contract_abi_stabel_coin_usdt,
+    address: contract_address_stable_coin_usdt,
+    functionName: "balanceOf",
+    args: [contract_price_pool],
+    config,
+  });
+
+  const USD_price = check_usd_price(
+    BalanceOfKBC.data as bigint,
+    BalanceOfStableCoin.data as bigint
+  );
+  useEffect(() => {
+    setUsdVal(USD_price.toString());
+  }, [BalanceOfKBC.data, BalanceOfStableCoin.data]);
+
+  // end conversion
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const inputVal = parseInt(event.target.value, 10);
+    setKbcVal(isNaN(inputVal) ? 0 : inputVal);
+    const nodeVal = inputVal * Number(usdVal);
+    setNodeQ_val(nodeVal);
+  };
+
+  const AdminFun = useReadContract({
+    abi: contract_abi,
+    address: contract_address,
+    functionName: "ownerWallet",
+    config,
+  });
+
+  useEffect(() => {
+    // console.log("Its checking Owner Wallet: ", AdminFun);
+    if (contract_current_admin === AdminFun.data) {
+      // console.log("AdminFun.data owner is********");
+      setIsOwner(true);
+    }
+  }, []);
+
+  const WithDrawlValRes = useReadContract({
+    abi: contract_abi,
+    address: contract_address,
+    functionName: "income",
+    args: [address],
+    config,
+  });
+
+  let WithDrawlValData: bigint[] = [];
+  WithDrawlValData = WithDrawlValRes?.data as bigint[];
+
+  useEffect(() => {
+    if (WithDrawlValRes.data) {
+      const newValue: number = Number(WithDrawlValData[5]); // Convert bigint to number
+      setWithDrawalVal(newValue);
+    }
+  }, []);
+
+  const WithDrawlROIRes = useReadContract({
+    abi: contract_abi,
+    address: contract_address,
+    functionName: "withdrawableROI",
+    args: [address],
+    config,
+  });
+
+  useEffect(() => {
+    if (WithDrawlROIRes.data) {
+      setWithDrawalROI(withDrawlROI);
+    }
+  }, []);
 
   // register function start
   type RegistrationValues = {
@@ -28,23 +126,21 @@ const WriteAbleFun = () => {
     referralId: string;
   };
 
+
   const onFinishReg = async (values: RegistrationValues) => {
-    console.log("values", values);
 
     const { request } = await simulateContract(config, {
       abi: contract_abi,
       address: contract_address,
       functionName: "Registration",
       args: [values.referralId],
-      value: parseEther(values.nodeQuantity),
+      value: parseEther(nodeQ_val.toString()),
     });
+
     const hash = await writeContract(config, request);
 
     console.log("hash", hash);
-
   };
-
-  // end register function
 
   // with drwal ROI function
   const withdrawROI = async () => {
@@ -71,6 +167,51 @@ const WriteAbleFun = () => {
     }
   };
 
+  // Close round
+  const closeRound = async () => {
+    if (address) {
+      try {
+        // console.log("values", values);
+
+        const { request } = await simulateContract(config, {
+          abi: contract_abi,
+          address: contract_address,
+          functionName: "closeRound",
+        });
+        const hash = await writeContract(config, request);
+
+        console.log("hash", hash);
+      } catch (error) {
+        console.error("Error sending transaction to contract:", error);
+      }
+    } else {
+      console.error(
+        "MetaMask not detected. Please install MetaMask extension."
+      );
+    }
+  };
+
+  // withdrawal Income
+  const withdrawlIncome = async () => {
+    if (address) {
+      try {
+        const { request } = await simulateContract(config, {
+          abi: contract_abi,
+          address: contract_address,
+          functionName: "withdrawIncome",
+        });
+        const hash = await writeContract(config, request);
+
+        console.log("hash", hash);
+      } catch (error) {
+        console.error("Error sending transaction to contract:", error);
+      }
+    } else {
+      console.error(
+        "MetaMask not detected. Please install MetaMask extension."
+      );
+    }
+  };
   // with drwal-income function
   const withDrawalIncomeNow = async () => {
     if (address) {
@@ -96,35 +237,8 @@ const WriteAbleFun = () => {
     }
   };
 
-  // register function start
-  type DepositKBCValues = {
-    payableAmount: string;
-  };
-  // deposit KBC
-  const onFinishDepositKBC = async (values: DepositKBCValues) => {
-    if (address) {
-      try {
-        const { request } = await simulateContract(config, {
-          abi: contract_abi,
-          address: contract_address,
-          functionName: "depositKBC",
-          value: parseEther(values.payableAmount),
-        });
-        const hash = await writeContract(config, request);
-
-        console.log("Transaction successful!", hash);
-      } catch (error) {
-        console.error("Error sending transaction to contract:", error);
-      }
-    } else {
-      console.error(
-        "MetaMask not detected. Please install MetaMask extension."
-      );
-    }
-  };
-
-  //   // end Deposit kbc function
-  //   // fundGlobal
+  // end Deposit kbc function
+  // fundGlobal
 
   type GlobalFund = {
     payableAmount: string;
@@ -154,9 +268,8 @@ const WriteAbleFun = () => {
     }
   };
 
-  //   // end fundGlobal function
-
-  //   // InsurancePool payableAmount
+  // end fundGlobal function
+  // InsurancePool payableAmount
 
   type InsurancePool = {
     payableAmount: string;
@@ -184,20 +297,20 @@ const WriteAbleFun = () => {
       );
     }
   };
- 
+
   //   // endInsurancePool function
   // price
   type SetKBCPrice = {
     price: string;
   };
   // start SetKBCPrice function
-  const onFinishSetKBCPrice = async (values: SetKBCPrice) => {
+  const onFinishWithDrawReward = async (values: SetKBCPrice) => {
     if (address) {
       try {
         const { request } = await simulateContract(config, {
           abi: contract_abi,
           address: contract_address,
-          functionName: "setKbcPrice",
+          functionName: "withdrawReward",
           args: [values.price],
           // value: parseEther(values.payableAmount),
         });
@@ -205,7 +318,6 @@ const WriteAbleFun = () => {
         const hash = await writeContract(config, request);
 
         console.log("Transaction successful!", hash);
-
       } catch (error) {
         console.error("Error sending transaction to contract:", error);
       }
@@ -216,7 +328,7 @@ const WriteAbleFun = () => {
     }
   };
 
-  //   // end SetKBCPrice function
+  // end SetKBCPrice function
 
   type ITopUp = {
     payableamount: string;
@@ -237,7 +349,6 @@ const WriteAbleFun = () => {
         const hash = await writeContract(config, request);
 
         console.log("hash", hash);
-      
       } catch (error) {
         console.error("Error sending transaction to contract:", error);
       }
@@ -250,26 +361,31 @@ const WriteAbleFun = () => {
 
   //   // end TopUp function
   //   // withdralCoin
-  type WithdralCoin = {
-    toAddress: string;
-    amount: string;
+  // type WithdralCoin = {
+  //   toAddress: string;
+  //   amount: string;
+  // };
+
+  type CloserAddress = {
+    closerAddress: string;
+    address: string;
   };
 
-  //start withdralCoin function
-  const onFinishwithdralCoin = async (values: WithdralCoin) => {
+  // start fund Global function
+  const onsetRoundCloserAddress = async (values: CloserAddress) => {
     if (address) {
       try {
+        console.log("Value is: ", values.address);
         const { request } = await simulateContract(config, {
           abi: contract_abi,
           address: contract_address,
-          functionName: "withdrawalCoin",
-          args: [values.toAddress, values.amount],
+          functionName: "setRoundCloserAddress",
+          args: [values.address],
         });
 
         const hash = await writeContract(config, request);
 
         console.log("Transaction successful!", hash);
-     
       } catch (error) {
         console.error("Error sending transaction to contract:", error);
       }
@@ -280,25 +396,46 @@ const WriteAbleFun = () => {
     }
   };
 
+  //start withdralCoin function
+  // const onFinishwithdralCoin = async (values: WithdralCoin) => {
+  //   if (address) {
+  //     try {
+  //       const { request } = await simulateContract(config, {
+  //         abi: contract_abi,
+  //         address: contract_address,
+  //         functionName: "withdrawalCoin",
+  //         args: [values.toAddress, values.amount],
+  //       });
+
+  //       const hash = await writeContract(config, request);
+
+  //       console.log("Transaction successful!", hash);
+  //     } catch (error) {
+  //       console.error("Error sending transaction to contract:", error);
+  //     }
+  //   } else {
+  //     console.error(
+  //       "MetaMask not detected. Please install MetaMask extension."
+  //     );
+  //   }
+  // };
+
   // read function start
 
   const usersCT = useReadContract({
-    abi: contract_abi_second,
-    address: contract_address_second,
+    abi: contract_abi,
+    address: contract_address,
     functionName: "users",
     args: [address],
     config,
   });
 
-  console.log("usersCT >> ", usersCT);
-
   let usersCTRes: bigint[] = [];
   usersCTRes = usersCT?.data as bigint[];
-  console.log("usersCTRes >>", usersCTRes);
 
   const userTeamSize = useReadContract({
-    abi: contract_abi_second,
-    address: contract_address_second,
+    abi: contract_abi,
+    address: contract_address,
     functionName: "userTeamSize",
     args: [address],
     config,
@@ -307,8 +444,8 @@ const WriteAbleFun = () => {
   userTeamSizeRes = userTeamSize?.data as bigint[];
 
   const userTurnOver = useReadContract({
-    abi: contract_abi_second,
-    address: contract_address_second,
+    abi: contract_abi,
+    address: contract_address,
     functionName: "userTurnOver",
     args: [address],
     config,
@@ -316,6 +453,11 @@ const WriteAbleFun = () => {
 
   let userTurnOverRes: bigint[] = [];
   userTurnOverRes = userTurnOver?.data as bigint[];
+  // console.log(
+  //   "Rurn Over Value: ",
+  //   parseFloat(formatEther(userTurnOverRes.toString())).toFixed(4),
+  //   userTurnOverRes
+  // );
 
   // const [rewardInfoRank, setRewardInfoRank] = useState(0)
   const kbcrewardInfo = [
@@ -327,25 +469,29 @@ const WriteAbleFun = () => {
     {
       id: "2",
       name: "Trun Over",
-      value: userTurnOverRes ? userTurnOverRes : 0,
+      value: userTurnOverRes
+        ? parseFloat(formatEther(userTurnOverRes.toString())).toFixed(4)
+        : 0,
     },
     {
       id: "3",
       name: "Rank",
-      value: rewardInfoRank ? rewardInfoRank : 0,
+      value: rewardInfoRank
+        ? parseFloat(formatEther(rewardInfoRank).toString()).toFixed(4)
+        : 0,
     },
     {
       id: "4",
       name: "Reffered User",
-      value: usersCTRes ? usersCTRes[2] : 0,
+      value: usersCTRes ? usersCTRes[5] : 0,
     },
   ];
 
   // ranks
 
   const RanksFun = useReadContract({
-    abi: contract_abi_second,
-    address: contract_address_second,
+    abi: contract_abi,
+    address: contract_address,
     functionName: "ranks",
     args: [address],
     config,
@@ -353,9 +499,6 @@ const WriteAbleFun = () => {
 
   let RanksFunRes: bigint[] = [];
   RanksFunRes = RanksFun?.data as bigint[];
-  console.log('RanksFunRes >>> ', RanksFunRes);
-  
-
 
   const Ranks_val = [
     {
@@ -367,57 +510,71 @@ const WriteAbleFun = () => {
     {
       id: 2,
       level: "Star One",
-      team: RanksFunRes && RanksFunRes[0].toString(),
-      income:
-        RanksFunRes && RanksFunRes[7] ? 'Yes' : 'No',
+      team:
+        RanksFunRes && RanksFunRes[0].toString()
+          ? RanksFunRes[0].toString()
+          : 0,
+      income: RanksFunRes && RanksFunRes[7] ? "Yes" : "No",
     },
     {
       id: 3,
       level: "Star Two",
-      team: RanksFunRes && RanksFunRes[1].toString(),
-      income:
-        RanksFunRes && RanksFunRes[8] ? 'Yes' : 'No',
+      team:
+        RanksFunRes && RanksFunRes[1].toString()
+          ? RanksFunRes[1].toString()
+          : 0,
+      income: RanksFunRes && RanksFunRes[8] ? "Yes" : "No",
     },
     {
       id: 4,
       level: "Star Three",
-      team: RanksFunRes && RanksFunRes[2].toString(),
-      income:
-        RanksFunRes && RanksFunRes[9] ? 'Yes' : 'No',
+      team:
+        RanksFunRes && RanksFunRes[2].toString()
+          ? RanksFunRes[2].toString()
+          : 0,
+      income: RanksFunRes && RanksFunRes[9] ? "Yes" : "No",
     },
     {
       id: 5,
       level: "Star Four",
-      team: RanksFunRes && RanksFunRes[3].toString(),
-      income:
-        RanksFunRes && RanksFunRes[10] ? 'Yes' : 'No',
+      team:
+        RanksFunRes && RanksFunRes[3].toString()
+          ? RanksFunRes[3].toString()
+          : 0,
+      income: RanksFunRes && RanksFunRes[10] ? "Yes" : "No",
     },
     {
       id: 6,
       level: "Star Five",
-      team: RanksFunRes && RanksFunRes[4].toString(),
-      income:
-        RanksFunRes && RanksFunRes[11] ? 'Yes' : 'No',
+      team:
+        RanksFunRes && RanksFunRes[4].toString()
+          ? RanksFunRes[4].toString()
+          : 0,
+      income: RanksFunRes && RanksFunRes[11] ? "Yes" : "No",
     },
     {
       id: 7,
       level: "Star Six",
-      team: RanksFunRes && RanksFunRes[5].toString(),
-      income:
-        RanksFunRes && RanksFunRes[12] ? 'Yes' : 'No',
+      team:
+        RanksFunRes && RanksFunRes[5].toString()
+          ? RanksFunRes[5].toString()
+          : 0,
+      income: RanksFunRes && RanksFunRes[12] ? "Yes" : "No",
     },
     {
       id: 8,
       level: "Star Seven",
-      team: RanksFunRes && RanksFunRes[6].toString(),
-      income:
-        RanksFunRes && RanksFunRes[13] ? 'Yes' : 'No',
-    }
+      team:
+        RanksFunRes && RanksFunRes[6].toString()
+          ? RanksFunRes[6].toString()
+          : 0,
+      income: RanksFunRes && RanksFunRes[13] ? "Yes" : "No",
+    },
   ];
 
   const totalDeposit = useReadContract({
-    abi: contract_abi_second,
-    address: contract_address_second,
+    abi: contract_abi,
+    address: contract_address,
     functionName: "totalDeposit",
     args: [address],
     config,
@@ -425,8 +582,6 @@ const WriteAbleFun = () => {
 
   let totalDepositRes: bigint[] = [];
   totalDepositRes = totalDeposit?.data as bigint[];
-  console.log("total deposit >> ", totalDepositRes);
-
   // the reand condition start here
   //usersCTRes is referredUsers
   useEffect(() => {
@@ -446,7 +601,7 @@ const WriteAbleFun = () => {
       totalDepositRes[0] >= 300e18
     ) {
       setRewardInfoRank(2);
-    }else if (
+    } else if (
       usersCTRes &&
       usersCTRes[2] >= 8 &&
       userTeamSizeRes[0] >= 50 &&
@@ -470,8 +625,7 @@ const WriteAbleFun = () => {
       totalDepositRes[0] >= 5000e18
     ) {
       setRewardInfoRank(5);
-    }
-    else if (
+    } else if (
       usersCTRes &&
       usersCTRes[2] >= 14 &&
       userTeamSizeRes[0] >= 500 &&
@@ -479,8 +633,7 @@ const WriteAbleFun = () => {
       totalDepositRes[0] >= 10000e18
     ) {
       setRewardInfoRank(6);
-    }
-    else if (
+    } else if (
       usersCTRes &&
       usersCTRes[2] >= 15 &&
       userTeamSizeRes[0] >= 1000 &&
@@ -495,9 +648,7 @@ const WriteAbleFun = () => {
 
   return (
     <>
-      <div className="row px-5 my-7">
-        {/* the renk funtion from read  */}
-        {/* KBC reward Info  */}
+      <div className="row px-5">
         <div className="col-lg-6">
           <div className="d-flex justify-content-center mt-4">
             <div className="network-heading text-center rounded-top-2">
@@ -533,8 +684,28 @@ const WriteAbleFun = () => {
           </div>
         </div>
         {/* Register function  */}
-        <div className="col-lg-6 mt-4 write-fun-center">
-          <div className="swap-wrap p-5 ">
+        <div className="col-lg-6 mt-4">
+          <div className="swap-wrap p-5 mt-40 position-relative">
+            <div className="reg-calac position-absolutex top-15 d-flexx text-center mb-2">
+              <div className="">
+                <input
+                  className="clac-field"
+                  value={kbcVal}
+                  type="number"
+                  pattern="[0-9]*"
+                  name="clac-field"
+                />
+                <span className="kbc-val">
+                  {kbcVal === 1 ? usdVal : Number(usdVal) * kbcVal}
+                </span>
+              </div>
+              <div className="ml-4x mt-2">
+                <span className="clr-base">1 USDT</span> <span className="clr-base ml-2">=</span>
+                <span className="kbc-val">
+                  {kbcVal === 1 ? usdVal : Number(usdVal)} KBC
+                </span>
+              </div>
+            </div>
             <div className="swap-head text-center">Register</div>
             <div className="swap">
               <div className="swap-box">
@@ -542,7 +713,6 @@ const WriteAbleFun = () => {
                   {...formItemLayout}
                   name="register"
                   onFinish={onFinishReg}
-                  //   onFinishFailed={onFinishFailedReg}
                   autoComplete="off"
                 >
                   <Form.Item
@@ -556,7 +726,13 @@ const WriteAbleFun = () => {
                     ]}
                     className="node-title"
                   >
-                    <Input className="input_filed" placeholder="0" />
+                    {/* <input type="hidden"  /> */}
+                    <Input
+                      className="input_filed"
+                      placeholder="0"
+                      value={nodeQ_val}
+                      onChange={handleChange}
+                    />
                   </Form.Item>
 
                   <Form.Item
@@ -581,58 +757,17 @@ const WriteAbleFun = () => {
             </div>
           </div>
         </div>
-        {/* <!-- Box end here --> */}
-
-        {/* Deposit KBC  */}
-        <div className="col-lg-6 mt-4 write-fun-center">
-          <div className="swap-wrap p-5">
-            <div className="swap-head text-center">Deposit KBC</div>
-            <div className="swap">
-              <div className="swap-box">
-                <Form
-                  {...formItemLayout}
-                  name="depositDbc"
-                  onFinish={onFinishDepositKBC}
-                  // onFinishFailed={onFinishFailedDepositKBC}
-                  autoComplete="off"
-                >
-                  <Form.Item
-                    label="Payable Amount"
-                    name="payableAmount"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please input your payable amount!",
-                      },
-                    ]}
-                  >
-                    <Input
-                      className="input_filed"
-                      placeholder="Payable Amount"
-                    />
-                  </Form.Item>
-                  <Form.Item className="text-center">
-                    <Button className="submit-btn" htmlType="submit">
-                      Submit
-                    </Button>
-                  </Form.Item>
-                </Form>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Fund Global  */}
-        <div className="col-lg-6 mt-7 write-fun-center">
-          <div className="swap-wrap p-5">
+        <div className="col-lg-6">
+          <div className="swap-wrap p-5 mt-45">
             <div className="swap-head text-center">Fund Global:</div>
-            <div className="swap">
+            <div className="swap1">
               <div className="swap-box">
                 <Form
                   {...formItemLayout}
                   name="fundGlobal"
                   onFinish={onFinishfundGlobal}
-                  // onFinishFailed={onFinishFailedfundGlobal}
                   autoComplete="off"
                 >
                   <Form.Item
@@ -662,10 +797,10 @@ const WriteAbleFun = () => {
         </div>
 
         {/* Fund Insurance Pool  */}
-        <div className="col-lg-6 mt-7 write-fun-center">
+        <div className="col-lg-6">
           <div className="swap-wrap p-5">
             <div className="swap-head text-center">Insurance Pool:</div>
-            <div className="swap">
+            <div className="swap1">
               <div className="swap-box">
                 <Form
                   {...formItemLayout}
@@ -701,16 +836,15 @@ const WriteAbleFun = () => {
         </div>
 
         {/* Fund Set KBC price  */}
-        <div className="col-lg-6 mt-7 write-fun-center">
+        <div className="col-lg-6">
           <div className="swap-wrap p-5">
-            <div className="swap-head text-center">Set KBC Price:</div>
-            <div className="swap">
+            <div className="swap-head text-center">Withdraw Reward</div>
+            <div className="swap1">
               <div className="swap-box">
                 <Form
                   {...formItemLayout}
-                  name="SetKBCPrice"
-                  onFinish={onFinishSetKBCPrice}
-                  // onFinishFailed={onFinishFailedSetKBCPrice}
+                  name="withDrawReward"
+                  onFinish={onFinishWithDrawReward}
                   autoComplete="off"
                 >
                   <Form.Item
@@ -735,9 +869,240 @@ const WriteAbleFun = () => {
             </div>
           </div>
         </div>
+        {/* withDrawal Income  */}
+        {isOwner && (
+          <div className="col-lg-6">
+            <div className="swap-wrap p-5">
+              <div className="swap-head text-center">Withdrawal Income</div>
+              <div className="swap1">
+                <div className="swap-box">
+                  <Form
+                    {...formItemLayout}
+                    name="withdrawalIncome"
+                    onFinish={withDrawalIncomeNow}
+                    autoComplete="off"
+                  >
+                    <Form.Item label="Withdrawal Income" name="withdrawlPrice">
+                      <Input
+                        className="input_filed disable-to"
+                        value={`${withDrawlVal} KBC`}
+                        placeholder="price"
+                      />
+                    </Form.Item>
+                    <Form.Item className="text-center">
+                      <Button className="submit-btn" htmlType="submit">
+                        Submit
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* withDrawal Income  */}
+        {/* {isOwner && (
+          <div className="col-lg-6">
+            <div className="swap-wrap p-5">
+              <div className="swap-head text-center">Withdrawal Income</div>
+              <div className="swap1">
+                <div className="swap-box">
+                  <div className="node">
+                    <p className="node-title label-clr">Withdrawal Income</p>
+                    <input
+                      className="input-node bg-dashboard form-control ps-2"
+                      value={`${withDrawlVal} KBC`}
+                      type="text"
+                      disabled
+                    />
+                  </div>
+                  <div className="pay text-center mt-5">
+                    <Button
+                      onClick={withDrawalIncomeNow}
+                      className="submit-btn"
+                      htmlType="submit"
+                    >
+                      Submit
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )} */}
+
+        {/* withDrawal ROI  */}
+
+        <div className="col-lg-6">
+          <div className="swap-wrap p-5">
+            <div className="swap-head text-center">Withdrawal ROI</div>
+            <div className="swap1">
+              <div className="swap-box">
+                <Form
+                  {...formItemLayout}
+                  name="withdrawROI"
+                  onFinish={withdrawROI}
+                  autoComplete="off"
+                >
+                  <Form.Item
+                    label="Withdrawal Balance"
+                    name="withdrawalBalance"
+                    // rules={[
+                    //   {
+                    //     required: true,
+                    //     message: "Please input your price!",
+                    //   },
+                    // ]}
+                  >
+                    <Input
+                      className="input_filed disable-to"
+                      value={`${withDrawlROI} KBC`}
+                      placeholder={`${withDrawlROI} KBC`}
+                      // disabled
+                    />
+                  </Form.Item>
+                  <Form.Item className="text-center">
+                    <Button className="submit-btn" htmlType="submit">
+                      Submit
+                    </Button>
+                  </Form.Item>
+                </Form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* <div className="col-lg-6">
+          <div className="swap-wrap p-5">
+            <div className="swap-head text-center">Withdrawal ROI</div>
+            <div className="swap1">
+              <div className="swap-box">
+                <div className="node">
+                  <p className="node-title">Withdrawal Balance</p>
+                  <input
+                    className="input-node bg-dashboard form-control ps-2"
+                    value={`${withDrawlROI} KBC`}
+                    type="text"
+                    disabled
+                  />
+                </div>
+                <div className="pay text-center mt-5">
+                  <Button
+                    onClick={withdrawROI}
+                    className="submit-btn"
+                    htmlType="submit"
+                  >
+                    Submit
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div> */}
+
+        {/* closeRound (0xe278fe6f)  */}
+        {isOwner && (
+          <div className="col-lg-6">
+            <div className="swap-wrap p-5">
+              <div className="swap-head text-center"> Close Round</div>
+              <div className="swap1">
+                <div className="swap-box">
+                  <div className="pay text-center mt-5">
+                    <Button
+                      onClick={closeRound}
+                      className="submit-btn"
+                      htmlType="submit"
+                    >
+                      Submit
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* withdrawIncome (0xe278fe6f)  */}
+        <div className="col-lg-6">
+          <div className="swap-wrap p-5">
+            <div className="swap-head text-center"> Withdrawl Income</div>
+            <div className="swap1">
+              <div className="swap-box">
+                <div className="pay text-center mt-5">
+                  <Button
+                    onClick={withdrawlIncome}
+                    className="submit-btn"
+                    htmlType="submit"
+                  >
+                    Submit
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* setRoundCloserAddress (0x29b51cff)  */}
+        {isOwner && (
+          <div className="col-lg-6">
+            <div className="swap-wrap p-5 mt-45">
+              <div className="swap-head text-center">
+                Set Round Closer Address
+              </div>
+              <div className="swap1">
+                <div className="swap-box">
+                  <Form
+                    {...formItemLayout}
+                    name="closerAddress"
+                    onFinish={onsetRoundCloserAddress}
+                    // onFinishFailed={onFinishFailedfundGlobal}
+                    autoComplete="off"
+                  >
+                    <Form.Item
+                      label="Round Closer"
+                      name="address"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Please input your closer address!",
+                        },
+                      ]}
+                    >
+                      <Input className="input_filed" placeholder="address" />
+                    </Form.Item>
+                    <Form.Item className="text-center">
+                      <Button className="submit-btn" htmlType="submit">
+                        Submit
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* withdraw ROI (0xe278fe6f)  */}
+        {/* <div className="col-lg-6">
+          <div className="swap-wrap p-5">
+            <div className="swap-head text-center"> Withdraw ROI</div>
+            <div className="swap">
+              <div className="swap-box">
+                <div className="pay text-center mt-5">
+                  <Button
+                    onClick={withdrawROI}
+                    className="submit-btn"
+                    htmlType="submit"
+                  >
+                    Submit
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div> */}
 
         {/* TopUp function  */}
-        <div className="col-lg-6 mt-7 write-fun-center">
+        <div className="col-lg-6">
           <div className="swap-wrap p-5">
             <div className="swap-head text-center">Top Up</div>
             <div className="swap">
@@ -764,114 +1129,6 @@ const WriteAbleFun = () => {
                       className="input_filed"
                       placeholder="Payable Amount (ether)"
                     />
-                  </Form.Item>
-                  <Form.Item
-                    label="Amount"
-                    name="amount"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please input your amount!",
-                      },
-                    ]}
-                  >
-                    <Input className="input_filed" placeholder="Amount" />
-                  </Form.Item>
-                  <Form.Item className="text-center">
-                    <Button className="submit-btn" htmlType="submit">
-                      Submit
-                    </Button>
-                  </Form.Item>
-                </Form>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* withDrawal Income  */}
-        <div className="col-lg-6 mt-7 write-fun-center">
-          <div className="swap-wrap p-5">
-            <div className="swap-head text-center">Withdrawal Income</div>
-            <div className="swap">
-              <div className="swap-box">
-                <div className="node">
-                  <p className="node-title">Withdrawal Income</p>
-                  <input
-                    className="input-node bg-dashboard form-control ps-2"
-                    value="4502.00 KBC"
-                    type="text"
-                    disabled
-                  />
-                </div>
-                <div className="pay text-center mt-5">
-                  <Button
-                    onClick={withDrawalIncomeNow}
-                    className="submit-btn"
-                    htmlType="submit"
-                  >
-                    Submit
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* withDrawal ROI  */}
-        <div className="col-lg-6 mt-7 write-fun-center">
-          <div className="swap-wrap p-5">
-            <div className="swap-head text-center">Withdrawal ROI</div>
-            <div className="swap">
-              <div className="swap-box">
-                <div className="node">
-                  <p className="node-title">Withdrawal Balance</p>
-                  <input
-                    className="input-node bg-dashboard form-control ps-2"
-                    value="4502.00 KBC"
-                    type="text"
-                    disabled
-                  />
-                </div>
-                <div className="pay text-center mt-5">
-                  <Button
-                    onClick={withdrawROI}
-                    className="submit-btn"
-                    htmlType="submit"
-                  >
-                    Submit
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Withdrawl Coin  */}
-        <div className="col-lg-6 mt-7 write-fun-center">
-          <div className="swap-wrap p-5">
-            <div className="swap-head text-center">
-              Withdrawl Coin : <span className="text-warningDD">KBC</span>
-            </div>
-            <div className="swap">
-              <div className="swap-box">
-                <Form
-                  {...formItemLayout}
-                  name="withdralCoin"
-                  onFinish={onFinishwithdralCoin}
-                  autoComplete="off"
-                >
-                  <Form.Item
-                    label="To Address"
-                    name="toAddress"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please input your toAddress!",
-                      },
-                    ]}
-                    className="node-title"
-                  >
-                    <Input className="input_filed" placeholder="To Address" />
                   </Form.Item>
                   <Form.Item
                     label="Amount"

@@ -5,13 +5,24 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import { useAccount, useReadContract } from "wagmi";
 import { BigNumberish } from "ethers";
-
-import { contract_address, contract_abi } from "../contract";
+import { useState, useEffect } from "react";
+import {
+  contract_abi,
+  contract_address,
+  contract_address_stable_coin_usdt,
+  contract_abi_stabel_coin_usdt,
+  contract_address_bnb_kbc,
+  contract_abi_bnb_kbc,
+  contract_price_pool,
+} from "../contract";
 import { config } from "../config";
+import { check_usd_price, convert_usdt_to_kbc } from "../utils/convert-to-eth";
 
 import "swiper/css";
 const Slider = () => {
   const { address } = useAccount();
+
+  const [usdVal, setUsdVal] = useState<string>("");
 
   // function 1
   const InsurancePoolActive = useReadContract({
@@ -29,9 +40,25 @@ const Slider = () => {
     config,
   });
 
-  const kbcethValue = KbcPrice.data
-    ? formatEther(KbcPrice.data as BigNumberish)
-    : 0;
+  const BalanceOfStableCoin = useReadContract({
+    abi: contract_abi_stabel_coin_usdt,
+    address: contract_address_stable_coin_usdt,
+    functionName: "balanceOf",
+    args: [contract_price_pool],
+    config,
+  });
+
+  // const kbcethValue = KbcPrice.data
+  //   ? parseFloat(formatEther(KbcPrice.data as BigNumberish)).toFixed(4)
+  //   : 0;
+
+    const kbcConverted = convert_usdt_to_kbc(KbcPrice?.data as bigint , BalanceOfStableCoin?.data as bigint)
+
+    // const USD_price = check_usd_price(
+    //   BalanceOfKBC.data as bigint,
+    //   BalanceOfStableCoin.data as bigint
+    // );
+
 
   // function 4
   const currRound = useReadContract({
@@ -73,10 +100,11 @@ const Slider = () => {
     config,
   });
 
-  const globalethValue = globalPool.data
-    ? formatEther(globalPool.data as BigNumberish)
+  const globalethValue1 = globalPool.data
+    ? parseFloat(formatEther(globalPool.data as BigNumberish)).toFixed(4)
     : 0;
-
+  // console.log("globalethValue1: ", globalethValue1, globalethValue1);
+  const globalethValue = (parseFloat(globalethValue1.toString()) / parseFloat(usdVal)).toFixed(4);
   // function 19
   const stakedUSDT = useReadContract({
     abi: contract_abi,
@@ -87,8 +115,26 @@ const Slider = () => {
   });
 
   const stakedUSDTEth = stakedUSDT.data
-    ? formatEther(stakedUSDT.data as BigNumberish)
+    ? parseFloat(formatEther(stakedUSDT.data as BigNumberish)).toFixed(4)
     : 0;
+
+  const BalanceOfKBC = useReadContract({
+    abi: contract_abi_bnb_kbc,
+    address: contract_address_bnb_kbc,
+    functionName: "balanceOf",
+    args: [contract_price_pool],
+    config,
+  });
+ 
+
+  const USD_price = check_usd_price(
+    BalanceOfKBC.data as bigint,
+    BalanceOfStableCoin.data as bigint
+  );
+  useEffect(() => {
+    console.log("Result ******* : ", Number(USD_price));
+    setUsdVal(USD_price.toString());
+  }, [BalanceOfKBC.data, BalanceOfStableCoin.data]);
 
   // function 23
   const withdrawableROI = useReadContract({
@@ -100,7 +146,7 @@ const Slider = () => {
   });
 
   const withdrawableROIEth = withdrawableROI.data
-    ? formatEther(withdrawableROI.data as BigNumberish)
+    ? parseFloat(formatEther(withdrawableROI.data as BigNumberish)).toFixed(4)
     : 0;
 
   const sliderData = [
@@ -109,7 +155,7 @@ const Slider = () => {
       funName: "Insurance Pool Active",
     },
     {
-      value: kbcethValue,
+      value: kbcConverted,
       funName: "KBC Price",
     },
     {
@@ -128,7 +174,7 @@ const Slider = () => {
     },
     {
       value: globalethValue,
-      funName: "Global Pool",
+      funName: "Global Pool USDT",
     },
     {
       value: stakedUSDTEth,
@@ -169,7 +215,7 @@ const Slider = () => {
         {sliderData.map((e, i) => (
           <>
             <SwiperSlide key={i}>
-              <div  key={i} className="card">
+              <div key={i} className="card">
                 <div className="card-body">
                   <div className="d-flex align-items-center justify-content-between flex-column h-100">
                     <h6 className="slide-number">{e.value}</h6>

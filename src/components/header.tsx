@@ -2,17 +2,32 @@ import { useAccount, useReadContract } from "wagmi";
 import { formatEther } from "ethers/utils";
 import { BigNumberish } from "ethers";
 
-import { contract_abi, contract_address } from "../contract";
+import {
+  contract_abi,
+  contract_address,
+  contract_address_stable_coin_usdt,
+  contract_abi_stabel_coin_usdt,
+  contract_address_bnb_kbc,
+  contract_abi_bnb_kbc,
+  contract_price_pool,
+} from "../contract";
 import { config } from "../config";
+import CountdownTimer from "./CountdownTimer";
+import { useState, useEffect } from "react";
+import { check_usd_price } from "../utils/convert-to-eth";
 
 const Header = () => {
   const { address } = useAccount();
+
   const { data } = useReadContract({
     abi: contract_abi,
     address: contract_address,
     functionName: "income",
     args: [address],
   });
+
+  // const [kbcVal, setKbcVal] = useState<number>(1);
+  const [usdVal, setUsdVal] = useState<string>("");
 
   interface BalanceDetail {
     value: number | undefined | string;
@@ -23,101 +38,97 @@ const Header = () => {
     {
       value:
         typeof data === "object" && Array.isArray(data) && data.length > 0
-          ? formatEther(data[0])
+          ? parseFloat(formatEther(data[0])).toFixed(4)
           : 0,
       name: "Direct Income",
     },
     {
       value:
         typeof data === "object" && Array.isArray(data) && data.length > 0
-          ? formatEther(data[1])
+          ? parseFloat(formatEther(data[1])).toFixed(4)
           : 0,
       name: "On Team ROI",
     },
     {
       value:
         typeof data === "object" && Array.isArray(data) && data.length > 0
-          ? formatEther(data[2])
+          ? parseFloat(formatEther(data[2])).toFixed(4)
           : 0,
       name: "Top 4 Income",
     },
     {
       value:
         typeof data === "object" && Array.isArray(data) && data.length > 0
-          ? formatEther(data[3])
+          ? parseFloat(formatEther(data[3])).toFixed(4)
           : 0,
       name: "Total Income",
     },
     {
       value:
         typeof data === "object" && Array.isArray(data) && data.length > 0
-          ? formatEther(data[4])
+          ? parseFloat(formatEther(data[4])).toFixed(4)
           : 0,
       name: "Taken Income",
     },
     {
       value:
         typeof data === "object" && Array.isArray(data) && data.length > 0
-          ? formatEther(data[5])
+          ? parseFloat(formatEther(data[5])).toFixed(4)
           : 0,
       name: "Balance Income",
     },
   ];
 
-    // function 11
-    const lastTopUp = useReadContract({
-      abi: contract_abi,
-      address: contract_address,
-      functionName: "lastTopup",
-      args:[address],
-      config,
-    });
+  // function 11
+  const lastTopUp = useReadContract({
+    abi: contract_abi,
+    address: contract_address,
+    functionName: "lastTopup",
+    args: [address],
+    config,
+  });
 
-    const lastToUpVal = lastTopUp.data
-    ? formatEther(lastTopUp.data as BigNumberish)
+  const lastToUpVal = lastTopUp.data
+    ? parseFloat(formatEther(lastTopUp.data as BigNumberish)).toFixed(4)
     : 0;
 
+  // function 20
+  const stakedUSDT = useReadContract({
+    abi: contract_abi,
+    address: contract_address,
+    functionName: "stakedUSDT",
+    args: [address],
+    config,
+  });
+  const BalanceOfKBC = useReadContract({
+    abi: contract_abi_bnb_kbc,
+    address: contract_address_bnb_kbc,
+    functionName: "balanceOf",
+    args: [contract_price_pool],
+    config,
+  });
+  const BalanceOfStableCoin = useReadContract({
+    abi: contract_abi_stabel_coin_usdt,
+    address: contract_address_stable_coin_usdt,
+    functionName: "balanceOf",
+    args: [contract_price_pool],
+    config,
+  });
 
-    // function 20
-    const stakedUSDT = useReadContract({
-      abi: contract_abi,
-      address: contract_address,
-      functionName: "stakedUSDT",
-      args:[address],
-      config,
-    });
+  const USD_price = check_usd_price(
+    BalanceOfKBC.data as bigint,
+    BalanceOfStableCoin.data as bigint
+  );
+  useEffect(() => {
+    console.log("Result ******* : ", Number(USD_price));
+    setUsdVal(USD_price.toString());
+  }, [BalanceOfKBC.data, BalanceOfStableCoin.data]);
 
-    const stakedUSDTVal = stakedUSDT.data
-    ? formatEther(stakedUSDT.data as BigNumberish)
+  const stakedUSDTVal = stakedUSDT.data
+    ? parseFloat(formatEther(stakedUSDT.data as BigNumberish)).toFixed(4)
     : 0;
 
-
-  //   // function 22
-  //   const TopUpTime = useReadContract({
-  //   abi: contract_abi,
-  //   address: contract_address,
-  //   functionName: "topUpTime",
-  //   args:[address],
-  //   config,
-  // });
-
-  // const topUpTimeVal = dayjs(Number(TopUpTime.data) * 1000).format("DD-MMM-YYYY") ||
-  // "00-Month-0000";
-
-         // function 23
-    // const totalDeposit = useReadContract({
-    //   abi: contract_abi,
-    //   address: contract_address,
-    //   functionName: "totalDeposit",
-    //   args:[address],
-    //   config,
-    // });
-
-    // const totalDepositVal = totalDeposit.data
-    // ? formatEther(totalDeposit.data as BigNumberish)
-    // : 0;
-
-      // function 9
+  // function 9
   const globalPool = useReadContract({
     abi: contract_abi,
     address: contract_address,
@@ -125,8 +136,35 @@ const Header = () => {
     config,
   });
 
+  const userData = useReadContract({
+    abi: contract_abi,
+    address: contract_address,
+    functionName: "users",
+    args: [address],
+    config,
+  });
+
+  console.log("Users Data: , ", userData);
+  let userDetail: bigint[] = [];
+  userDetail = userData?.data as bigint[];
+  console.log("User Detaols :", userDetail, typeof userDetail);
+  // console.log("Status now: ",;
+  let stakesTime = userDetail ? Number(userDetail[2]) : 0;
+  // const timestamp = Users.data.stakeTimes; // Example timestamp
+  // const date = new Date(timestamp * 1000);
+  // const currentRoundTime = new Date(Number(CurrRoundStartTime.data) * 1000);
+  const date = new Date(stakesTime * 1000);
+
+  const options: Intl.DateTimeFormatOptions = {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  }; //currentRoundTime.toLocaleTimeString("en-US", options);
+  const formattedTime = date.toLocaleTimeString("en-US", options);
+
   const globalethValue = globalPool.data
-    ? formatEther(globalPool.data as BigNumberish)
+    ? parseFloat(formatEther(globalPool.data as BigNumberish)).toFixed(4)
     : 0;
 
   interface Header_Two {
@@ -134,42 +172,57 @@ const Header = () => {
     name: string;
   }
 
+  // function 23
+  const withdrawableROI = useReadContract({
+    abi: contract_abi,
+    address: contract_address,
+    functionName: "withdrawableROI",
+    args: [address],
+    config,
+  });
+
+  const withdrawableROIEth = withdrawableROI.data
+    ? parseFloat(formatEther(withdrawableROI.data as BigNumberish)).toFixed(4)
+    : 0;
+
   // insurancePool
-        // function 9
-        const insurancePool = useReadContract({
-          abi: contract_abi,
-          address: contract_address,
-          functionName: "insurancePool",
-          config,
-        });
-      
-        const insuranceethValue = insurancePool.data
-          ? formatEther(globalPool.data as BigNumberish)
-          : 0;
+  // function 9
+  const insurancePool = useReadContract({
+    abi: contract_abi,
+    address: contract_address,
+    functionName: "insurancePool",
+    config,
+  });
+
+  const insuranceethValue1 = insurancePool.data
+    ? parseFloat(formatEther(insurancePool.data as BigNumberish)).toFixed(4)
+    : 0;
+
+  const insuranceethValue = (parseFloat(insuranceethValue1.toString()) / parseFloat(usdVal)).toFixed(4);
 
   const Header_Two: Header_Two[] = [
     {
-      value:  lastToUpVal,
+      value: lastToUpVal,
       name: "Last TopUp",
     },
     {
-      value:globalethValue,
+      value: globalethValue,
       name: "GlobalPool KBC",
     },
     {
-      value:stakedUSDTVal,
+      value: stakedUSDTVal,
       name: "Staked USDT",
     },
     {
-      value:globalethValue,
-      name: "GlobalPool USDT",
+      value: withdrawableROIEth,
+      name: "With Drawable ROI",
     },
     {
-      value:insuranceethValue,
+      value: insuranceethValue1,
       name: "InsurancePool KBC",
     },
     {
-      value:insuranceethValue,
+      value: insuranceethValue,
       name: "InsurancePool USDT",
     },
   ];
@@ -201,6 +254,12 @@ const Header = () => {
                   {/* <span className="sub-number"> USDT</span> */}
                 </p>
                 <p className="cards-title">{element.name}</p>
+                {element.name === "With Drawable ROI" && (
+                  <p id="countDownTinerROI" className="text-pink fs-3">
+                    {" "}
+                    <CountdownTimer targetTime={formattedTime} />
+                  </p>
+                )}
               </div>
             </div>
           ))}

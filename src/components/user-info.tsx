@@ -3,12 +3,10 @@ import { Button, Form, Input } from "antd";
 import { formatEther } from "ethers/utils";
 import dayjs from "dayjs";
 
-import {
-  contract_address,
-  contract_abi
-} from "../contract";
+import { contract_address, contract_abi } from "../contract";
 import { config } from "../config";
 import { useState } from "react";
+import CountdownTimer from "./CountdownTimer";
 
 const UserInfo = () => {
   const { address } = useAccount();
@@ -35,6 +33,22 @@ const UserInfo = () => {
     args: [address],
     config,
   });
+  const CurrRoundStartTime = useReadContract({
+    abi: contract_abi,
+    address: contract_address,
+    functionName: "currRoundStartTime",
+    config,
+  });
+
+  const currentRoundTime = new Date(Number(CurrRoundStartTime.data) * 1000);
+
+  const options: Intl.DateTimeFormatOptions = {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  };
+  const formattedRound = currentRoundTime.toLocaleTimeString("en-US", options);
 
   // function 16
   const RegTime = useReadContract({
@@ -44,7 +58,7 @@ const UserInfo = () => {
     args: [address],
     config,
   });
-
+  console.log("Reg Time is:", RegTime.data);
   const userDetail_arr = [
     {
       id: "1",
@@ -59,12 +73,12 @@ const UserInfo = () => {
     {
       id: "3",
       name: "Staked KBC",
-      value: userDetail ? formatEther(userDetail[3]) : 0,
+      value: userDetail ? parseFloat(formatEther(userDetail[3])).toFixed(4) : 0,
     },
     {
       id: "4",
       name: "At Price",
-      value: userDetail ? formatEther(userDetail[4]) : 0,
+      value: userDetail ? parseFloat(formatEther(userDetail[4])).toFixed(4) : 0,
     },
     {
       id: "5",
@@ -74,27 +88,29 @@ const UserInfo = () => {
     {
       id: "6",
       name: "Total income",
-      value: userDetail ? formatEther(userDetail[6]) : 0,
+      value: userDetail ? parseFloat(formatEther(userDetail[6])).toFixed(4) : 0,
     },
     {
       id: "7",
       name: "Root Balance",
-      value: userDetail ? formatEther(userDetail[7]) : 0,
+      value: userDetail ? parseFloat(formatEther(userDetail[7])).toFixed(4) : 0,
     },
     {
       id: "8",
       name: "Assured Reward",
-      value: userDetail ? formatEther(userDetail[8]) : 0,
+      value: userDetail ? parseFloat(formatEther(userDetail[8])).toFixed(4) : 0,
     },
     {
       id: "9",
       name: "Level Income Recived",
-      value: userDetail ? formatEther(userDetail[9]) : 0,
+      value: userDetail ? parseFloat(formatEther(userDetail[9])).toFixed(4) : 0,
     },
     {
       id: "10",
       name: "Token ROI",
-      value: userDetail ? formatEther(userDetail[10]) : 0,
+      value: userDetail
+        ? parseFloat(formatEther(userDetail[10])).toFixed(4)
+        : 0,
     },
     {
       id: "11",
@@ -106,7 +122,9 @@ const UserInfo = () => {
     {
       id: "12",
       name: "Income Missed",
-      value: userDetail ? formatEther(userDetail[12]) : 0,
+      value: userDetail
+        ? parseFloat(formatEther(userDetail[12])).toFixed(4)
+        : 0,
     },
     {
       id: "13",
@@ -125,12 +143,12 @@ const UserInfo = () => {
     // {
     //   id: 12,
     //   name: "Register time",
-    //   value: userDetail ? formatEther(userDetail[13]) : 0,
+    //   value: userDetail ? parseFloat(formatEther(userDetail[13]) : 0,
     // },
     // {
     //   id: 12,
     //   name: "Mint Day",
-    //   value: userDetail ? formatEther(userDetail[14]) : 0,
+    //   value: userDetail ? parseFloat(formatEther(userDetail[14]) : 0,
     // },
   ];
 
@@ -149,22 +167,26 @@ const UserInfo = () => {
     {
       id: "1",
       name: "Forwarded",
-      value: usdtDetail ? formatEther(usdtDetail[8]) : 0,
+      value: usdtDetail ? parseFloat(formatEther(usdtDetail[8])).toFixed(4) : 0,
     },
     {
       id: "2",
       name: "Actual",
-      value: usdtDetail ? formatEther(usdtDetail[11]) : 0,
+      value: usdtDetail
+        ? parseFloat(formatEther(usdtDetail[11])).toFixed(4)
+        : 0,
     },
     {
       id: "3",
       name: "USDT",
-      value: usdtDetail ? formatEther(usdtDetail[9]) : 0,
+      value: usdtDetail ? parseFloat(formatEther(usdtDetail[9])).toFixed(4) : 0,
     },
     {
       id: "4",
       name: "Distribute",
-      value: usdtDetail ? formatEther(usdtDetail[10]) : 0,
+      value: usdtDetail
+        ? parseFloat(formatEther(usdtDetail[10])).toFixed(4)
+        : 0,
     },
   ];
 
@@ -175,7 +197,7 @@ const UserInfo = () => {
       address: usdtDetail
         ? usdtDetail[4]
         : "0x0000000000000000000000000000000000000000",
-      value: usdtDetail ? formatEther(usdtDetail[0]) : 0,
+      value: usdtDetail ? parseFloat(formatEther(usdtDetail[0])).toFixed(4) : 0,
     },
     {
       id: "2",
@@ -183,7 +205,7 @@ const UserInfo = () => {
       address: usdtDetail
         ? usdtDetail[5]
         : "0x0000000000000000000000000000000000000000",
-      value: usdtDetail ? formatEther(usdtDetail[1]) : 0,
+      value: usdtDetail ? parseFloat(formatEther(usdtDetail[1])).toFixed(4) : 0,
     },
     {
       id: "3",
@@ -191,7 +213,7 @@ const UserInfo = () => {
       address: usdtDetail
         ? usdtDetail[6]
         : "0x0000000000000000000000000000000000000000",
-      value: usdtDetail ? formatEther(usdtDetail[2]) : 0,
+      value: usdtDetail ? parseFloat(formatEther(usdtDetail[2])).toFixed(4) : 0,
     },
     {
       id: "4",
@@ -199,7 +221,7 @@ const UserInfo = () => {
       address: usdtDetail
         ? usdtDetail[7]
         : "0x0000000000000000000000000000000000000000",
-      value: usdtDetail ? formatEther(usdtDetail[3]) : 0,
+      value: usdtDetail ? parseFloat(formatEther(usdtDetail[3])).toFixed(4) : 0,
     },
   ];
 
@@ -254,7 +276,10 @@ const UserInfo = () => {
       id: 16,
       level: "Level 1",
       team: userDetail ? Number(userDetail[5]) : 0,
-      income: level1Income && formatEther(level1Income[0].toString()) + " USDT",
+      income:
+        level1Income &&
+        parseFloat(formatEther(level1Income[0].toString())).toFixed(4) +
+          " USDT",
     },
     {
       id: 2,
@@ -356,12 +381,6 @@ const UserInfo = () => {
     },
   ];
 
-
-
-
-
-  // set reward 
-
   return (
     <>
       <div className="row px-5">
@@ -406,7 +425,10 @@ const UserInfo = () => {
           </div>
           <div className="reward-box">
             <div className="d-flex justify-content-center">
-              <span className="text-pink fs-3">Today winner</span>
+              <span className="text-pink fs-3">Today winner </span>
+              <span id="countDownTodayWinner" className="text-pink fs-3">
+                <CountdownTimer targetTime={formattedRound} />
+              </span>
             </div>
             {winerInfo.map((ele) => (
               <div key={ele.id} className="text-center mt-2">
@@ -437,14 +459,14 @@ const UserInfo = () => {
                           message: "Please enter current round !",
                         },
                       ]}
-                      className="node-title"
+                      className="node-title mt-4"
                     >
                       <Input
                         className="input_filed"
                         placeholder="Round Number ..."
                       />
                     </Form.Item>
-                    <Button className="submit-btn ml-15" htmlType="submit">
+                    <Button className="submit-btn ml-15 h-60" htmlType="submit">
                       Search
                     </Button>
                   </div>
@@ -512,11 +534,11 @@ const UserInfo = () => {
                       className="node-title"
                     >
                       <Input
-                        className="input_filed"
+                        className="input_filed mt-4"
                         placeholder="Round Number ..."
                       />
                     </Form.Item>
-                    <Button className="submit-btn ml-15" htmlType="submit">
+                    <Button className="submit-btn ml-15 h-60" htmlType="submit">
                       Search
                     </Button>
                   </div>

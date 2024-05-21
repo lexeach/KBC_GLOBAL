@@ -12551,13 +12551,13 @@ textarea.form-control-lg {
   transition: all 0.3s;
   line-height: 1.4em;
   border: 1px solid #3E2723;
-  background: linear-gradient(to right, rgba(62,39,35, 0.1) 1%, transparent 40%, transparent 60%, rgba(62,39,35, 0.1) 100%);
-  color: #3E2723;
-  box-shadow: inset 0 0 10px rgba(62,39,35, 0.4), 0 0 9px 3px rgba(62,39,35, 0.1);
+  background: linear-gradient(to right, rgba(27, 253, 156, 0.1) 1%, transparent 40%, transparent 60%, rgba(27, 253, 156, 0.1) 100%);
+  color: #FFF;
+  box-shadow: inset 0 0 10px rgba(27, 253, 156, 0.4), 0 0 9px 3px rgba(27, 253, 156, 0.1);
 }
 .mybtn1:hover {
   color: #82ffc9;
-  box-shadow: inset 0 0 10px rgba(62,39,35, 0.6), 0 0 9px 3px rgba(62,39,35, 0.2);
+  box-shadow: inset 0 0 10px rgba(27, 253, 156, 0.4), 0 0 9px 3px rgba(27, 253, 156, 0.1);
 }
 .mybtn1:before {
   content: "";
@@ -12590,7 +12590,7 @@ textarea.form-control-lg {
 }
 .mybtn1-sm:hover {
   color: #82ffc9;
-  box-shadow: inset 0 0 10px rgba(62,39,35, 0.6), 0 0 9px 3px rgba(62,39,35, 0.2);
+  box-shadow: inset 0 0 10px rgba(27, 253, 156, 0.4), 0 0 9px 3px rgba(27, 253, 156, 0.1);
 }
 .mybtn1-sm:before {
   content: "";

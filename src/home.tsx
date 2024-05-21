@@ -1,37 +1,34 @@
-import { 
+import {
   useAccount,
   // useWriteContract,
-//   useReadContract,
+  //   useReadContract,
 } from "wagmi";
-import { parseEther } from 'viem'
+import { parseEther } from "viem";
 
-import { simulateContract, writeContract } from '@wagmi/core'
+import { simulateContract, writeContract } from "@wagmi/core";
 
 import { contract_abi, contract_address } from "./contract";
 import { config } from "./config";
 
 const Home = () => {
   const { address } = useAccount();
+
   //   const { writeContract } = useWriteContract();
 
-
   const writeFun = async () => {
+    const combinedArgument = "1000000000000000";
+    console.log("combinedArgument", combinedArgument);
 
-    const combinedArgument = '1000000000000000'
-    console.log('combinedArgument', combinedArgument);
-    
     const { request } = await simulateContract(config, {
-        abi:contract_abi,
-        address: contract_address,
-        functionName: 'Registration',
-        args: [2],
-        value: parseEther("0.001")
-      })
-      const hash = await writeContract(config, request)
+      abi: contract_abi,
+      address: contract_address,
+      functionName: "Registration",
+      args: [2],
+      value: parseEther("0.001"),
+    });
+    const hash = await writeContract(config, request);
 
-      console.log('hash', hash);
-      
-   
+    console.log("hash", hash);
   };
 
   //   const result = useReadContract({
@@ -60,13 +57,12 @@ const Home = () => {
   //     InsurancePoolActive.data
   //   );
 
-//   const { isLoading: isConfirming, isSuccess: isConfirmed } =
-//     useWaitForTransactionReceipt({
-//       hash,
-//     });
+  //   const { isLoading: isConfirming, isSuccess: isConfirmed } =
+  //     useWaitForTransactionReceipt({
+  //       hash,
+  //     });
 
-//     console.log(' isLoading: isConfirming, isSuccess: isConfirmed', isConfirming, isConfirmed);
-    
+  //     console.log(' isLoading: isConfirming, isSuccess: isConfirmed', isConfirming, isConfirmed);
 
   return (
     <>
