@@ -39,6 +39,21 @@ const UserInfo = () => {
     functionName: "currRoundStartTime",
     config,
   });
+  const TotalTaken = useReadContract({
+    abi: contract_abi,
+    address: contract_address,
+    functionName: "totalTaken",
+    args: [address],
+    config,
+  });
+
+  const TotalDeposit = useReadContract({
+    abi: contract_abi,
+    address: contract_address,
+    functionName: "totalDeposit",
+    args: [address],
+    config,
+  });
 
   const currentRoundTime = new Date(Number(CurrRoundStartTime.data) * 1000);
 
@@ -140,16 +155,16 @@ const UserInfo = () => {
         dayjs(Number(RegTime.data) * 1000).format("DD-MMM-YYYY") ||
         "00-Month-0000",
     },
-    // {
-    //   id: 12,
-    //   name: "Register time",
-    //   value: userDetail ? parseFloat(formatEther(userDetail[13]) : 0,
-    // },
-    // {
-    //   id: 12,
-    //   name: "Mint Day",
-    //   value: userDetail ? parseFloat(formatEther(userDetail[14]) : 0,
-    // },
+    {
+      id: 15,
+      name: "Total Taken",
+      value: TotalTaken.data ? formatEther(TotalTaken.data) : 0,
+    },
+    {
+      id: 15,
+      name: "Total Deposit",
+      value: TotalDeposit.data ? formatEther(TotalDeposit.data) : 0, //parseFloat(formatEther(userDetail[14]))
+    },
   ];
 
   const reportUsdtRes = useReadContract({

@@ -3,6 +3,8 @@ import { Button, Form, Input } from "antd";
 import { useAccount, useReadContract } from "wagmi";
 import { parseEther } from "ethers/utils";
 import { simulateContract, writeContract } from "@wagmi/core";
+
+// import { useSendTransaction, useWaitForTransaction } from "@wagmi/core";
 import { formatEther } from "ethers/utils";
 
 import {
@@ -126,20 +128,34 @@ const WriteAbleFun = () => {
     referralId: string;
   };
 
-
   const onFinishReg = async (values: RegistrationValues) => {
+    console.log(
+      " parseEther(nodeQ_val.toString())",
+      parseEther(nodeQ_val.toString()),
+      values.referralId
+    );
+    try {
+      const { request } = await simulateContract(config, {
+        abi: contract_abi,
+        address: contract_address,
+        functionName: "Registration",
+        args: [values.referralId],
+        value: parseEther(nodeQ_val.toString()),
+      });
+      console.log("Request :", request);
 
-    const { request } = await simulateContract(config, {
-      abi: contract_abi,
-      address: contract_address,
-      functionName: "Registration",
-      args: [values.referralId],
-      value: parseEther(nodeQ_val.toString()),
-    });
-
-    const hash = await writeContract(config, request);
-
-    console.log("hash", hash);
+      const hash = await writeContract(config, request);
+      console.log("hash", hash);
+    } catch (error) {
+      const startIndex = error.message.indexOf(":") + 2; // Skip ": "
+      const endIndex = error.message.indexOf("\nContract Call");
+      const reason = error.message.substring(startIndex, endIndex).trim();
+      console.log("startIndex", startIndex, endIndex, reason.length);
+      console.log("Extracted reason:", reason);
+      if (reason.length > 100) {
+        alert("Insufficiant amount in account to perform this transaction ");
+      } else alert("Error Got Expected : " + reason);
+    }
   };
 
   // with drwal ROI function
@@ -155,11 +171,17 @@ const WriteAbleFun = () => {
           // value: parseEther("0.001"),
         });
         const hash = await writeContract(config, request);
-
         console.log("hash", hash);
       } catch (error) {
-        console.error("Error sending transaction to contract:", error);
+        const startIndex = error.message.indexOf(":") + 2; // Skip ": "
+        const endIndex = error.message.indexOf("\nContract Call");
+        const reason = error.message.substring(startIndex, endIndex).trim();
+        if (reason.length > 100) {
+          alert("Insufficiant amount in account to perform this transaction ");
+        } else alert("Error Got Expected : " + reason);
       }
+
+      // };
     } else {
       console.error(
         "MetaMask not detected. Please install MetaMask extension."
@@ -179,10 +201,14 @@ const WriteAbleFun = () => {
           functionName: "closeRound",
         });
         const hash = await writeContract(config, request);
-
         console.log("hash", hash);
       } catch (error) {
-        console.error("Error sending transaction to contract:", error);
+        const startIndex = error.message.indexOf(":") + 2; // Skip ": "
+        const endIndex = error.message.indexOf("\nContract Call");
+        const reason = error.message.substring(startIndex, endIndex).trim();
+        if (reason.length > 100) {
+          alert("Insufficiant amount in account to perform this transaction ");
+        } else alert("Error Got Expected : " + reason);
       }
     } else {
       console.error(
@@ -201,10 +227,14 @@ const WriteAbleFun = () => {
           functionName: "withdrawIncome",
         });
         const hash = await writeContract(config, request);
-
         console.log("hash", hash);
       } catch (error) {
-        console.error("Error sending transaction to contract:", error);
+        const startIndex = error.message.indexOf(":") + 2; // Skip ": "
+        const endIndex = error.message.indexOf("\nContract Call");
+        const reason = error.message.substring(startIndex, endIndex).trim();
+        if (reason.length > 100) {
+          alert("Insufficiant amount in account to perform this transaction ");
+        } else alert("Error Got Expected : " + reason);
       }
     } else {
       console.error(
@@ -228,7 +258,12 @@ const WriteAbleFun = () => {
         console.log("hash", hash);
         // const transaction = await contract.withdrawIncome();
       } catch (error) {
-        console.error("Error sending transaction to contract:", error);
+        const startIndex = error.message.indexOf(":") + 2; // Skip ": "
+        const endIndex = error.message.indexOf("\nContract Call");
+        const reason = error.message.substring(startIndex, endIndex).trim();
+        if (reason.length > 100) {
+          alert("Insufficiant amount in account to perform this transaction ");
+        } else alert("Error Got Expected : " + reason);
       }
     } else {
       console.error(
@@ -259,7 +294,12 @@ const WriteAbleFun = () => {
 
         console.log("Transaction successful!", hash);
       } catch (error) {
-        console.error("Error sending transaction to contract:", error);
+        const startIndex = error.message.indexOf(":") + 2; // Skip ": "
+        const endIndex = error.message.indexOf("\nContract Call");
+        const reason = error.message.substring(startIndex, endIndex).trim();
+        if (reason.length > 100) {
+          alert("Insufficiant amount in account to perform this transaction ");
+        } else alert("Error Got Expected : " + reason);
       }
     } else {
       console.error(
@@ -289,7 +329,12 @@ const WriteAbleFun = () => {
 
         console.log("Transaction successful!", hash);
       } catch (error) {
-        console.error("Error sending transaction to contract:", error);
+        const startIndex = error.message.indexOf(":") + 2; // Skip ": "
+        const endIndex = error.message.indexOf("\nContract Call");
+        const reason = error.message.substring(startIndex, endIndex).trim();
+        if (reason.length > 100) {
+          alert("Insufficiant amount in account to perform this transaction ");
+        } else alert("Error Got Expected : " + reason);
       }
     } else {
       console.error(
@@ -319,7 +364,12 @@ const WriteAbleFun = () => {
 
         console.log("Transaction successful!", hash);
       } catch (error) {
-        console.error("Error sending transaction to contract:", error);
+        const startIndex = error.message.indexOf(":") + 2; // Skip ": "
+        const endIndex = error.message.indexOf("\nContract Call");
+        const reason = error.message.substring(startIndex, endIndex).trim();
+        if (reason.length > 100) {
+          alert("Insufficiant amount in account to perform this transaction ");
+        } else alert("Error Got Expected : " + reason);
       }
     } else {
       console.error(
@@ -350,7 +400,12 @@ const WriteAbleFun = () => {
 
         console.log("hash", hash);
       } catch (error) {
-        console.error("Error sending transaction to contract:", error);
+        const startIndex = error.message.indexOf(":") + 2; // Skip ": "
+        const endIndex = error.message.indexOf("\nContract Call");
+        const reason = error.message.substring(startIndex, endIndex).trim();
+        if (reason.length > 100) {
+          alert("Insufficiant amount in account to perform this transaction ");
+        } else alert("Error Got Expected : " + reason);
       }
     } else {
       console.error(
@@ -387,7 +442,12 @@ const WriteAbleFun = () => {
 
         console.log("Transaction successful!", hash);
       } catch (error) {
-        console.error("Error sending transaction to contract:", error);
+        const startIndex = error.message.indexOf(":") + 2; // Skip ": "
+        const endIndex = error.message.indexOf("\nContract Call");
+        const reason = error.message.substring(startIndex, endIndex).trim();
+        if (reason.length > 100) {
+          alert("Insufficiant amount in account to perform this transaction ");
+        } else alert("Error Got Expected : " + reason);
       }
     } else {
       console.error(
@@ -395,30 +455,6 @@ const WriteAbleFun = () => {
       );
     }
   };
-
-  //start withdralCoin function
-  // const onFinishwithdralCoin = async (values: WithdralCoin) => {
-  //   if (address) {
-  //     try {
-  //       const { request } = await simulateContract(config, {
-  //         abi: contract_abi,
-  //         address: contract_address,
-  //         functionName: "withdrawalCoin",
-  //         args: [values.toAddress, values.amount],
-  //       });
-
-  //       const hash = await writeContract(config, request);
-
-  //       console.log("Transaction successful!", hash);
-  //     } catch (error) {
-  //       console.error("Error sending transaction to contract:", error);
-  //     }
-  //   } else {
-  //     console.error(
-  //       "MetaMask not detected. Please install MetaMask extension."
-  //     );
-  //   }
-  // };
 
   // read function start
 
@@ -700,7 +736,8 @@ const WriteAbleFun = () => {
                 </span>
               </div>
               <div className="ml-4x mt-2">
-                <span className="clr-base">1 USDT</span> <span className="clr-base ml-2">=</span>
+                <span className="clr-base">1 USDT</span>{" "}
+                <span className="clr-base ml-2">=</span>
                 <span className="kbc-val">
                   {kbcVal === 1 ? usdVal : Number(usdVal)} KBC
                 </span>
