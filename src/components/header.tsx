@@ -120,7 +120,6 @@ const Header = () => {
     BalanceOfStableCoin.data as bigint
   );
   useEffect(() => {
-    console.log("Result ******* : ", Number(USD_price));
     setUsdVal(USD_price.toString());
   }, [BalanceOfKBC.data, BalanceOfStableCoin.data]);
 
@@ -144,10 +143,8 @@ const Header = () => {
     config,
   });
 
-  console.log("Users Data: , ", userData);
   let userDetail: bigint[] = [];
   userDetail = userData?.data as bigint[];
-  console.log("User Detaols :", userDetail, typeof userDetail);
   // console.log("Status now: ",;
   let stakesTime = userDetail ? Number(userDetail[2]) : 0;
   // const timestamp = Users.data.stakeTimes; // Example timestamp
@@ -198,7 +195,9 @@ const Header = () => {
     ? parseFloat(formatEther(insurancePool.data as BigNumberish)).toFixed(4)
     : 0;
 
-  const insuranceethValue = (parseFloat(insuranceethValue1.toString()) / parseFloat(usdVal)).toFixed(4);
+  const insuranceethValue = (
+    parseFloat(insuranceethValue1.toString()) / parseFloat(usdVal)
+  ).toFixed(4);
 
   const Header_Two: Header_Two[] = [
     {

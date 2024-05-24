@@ -16,9 +16,7 @@ const Home = () => {
   //   const { writeContract } = useWriteContract();
 
   const writeFun = async () => {
-    const combinedArgument = "1000000000000000";
-    console.log("combinedArgument", combinedArgument);
-
+    // const combinedArgument = "1000000000000000";
     const { request } = await simulateContract(config, {
       abi: contract_abi,
       address: contract_address,

@@ -73,7 +73,6 @@ const UserInfo = () => {
     args: [address],
     config,
   });
-  console.log("Reg Time is:", RegTime.data);
   const userDetail_arr = [
     {
       id: "1",
@@ -161,7 +160,7 @@ const UserInfo = () => {
       value: TotalTaken.data ? formatEther(TotalTaken.data) : 0,
     },
     {
-      id: 15,
+      id: 16,
       name: "Total Deposit",
       value: TotalDeposit.data ? formatEther(TotalDeposit.data) : 0, //parseFloat(formatEther(userDetail[14]))
     },

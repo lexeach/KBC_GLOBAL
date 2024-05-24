@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Button, Form, Input } from "antd";
 import { useAccount, useReadContract } from "wagmi";
 import { parseEther } from "ethers/utils";
+import { BigNumberish } from "ethers";
+import BigNumber from "bignumber.js";
+
 import { simulateContract, writeContract } from "@wagmi/core";
 
 // import { useSendTransaction, useWaitForTransaction } from "@wagmi/core";
@@ -19,7 +22,7 @@ import {
 } from "../contract";
 import { config } from "../config";
 
-import { check_usd_price } from "../utils/convert-to-eth";
+import { check_usd_price, check_KBC_Price } from "../utils/convert-to-eth";
 
 const WriteAbleFun = () => {
   const [rewardInfoRank, setRewardInfoRank] = useState(0);
@@ -28,6 +31,9 @@ const WriteAbleFun = () => {
   const [isOwner, setIsOwner] = useState(false);
   const [kbcVal, setKbcVal] = useState<number>(1);
   const [usdVal, setUsdVal] = useState<string>("");
+  const [calKBC, setCalKBC] = useState<string>("");
+
+  // setKBCVal;
   const [nodeQ_val, setNodeQ_val] = useState<number>(1);
 
   const { address } = useAccount();
@@ -66,6 +72,14 @@ const WriteAbleFun = () => {
     setUsdVal(USD_price.toString());
   }, [BalanceOfKBC.data, BalanceOfStableCoin.data]);
 
+  const KBC_price = check_KBC_Price(
+    BalanceOfKBC.data as bigint,
+    BalanceOfStableCoin.data as bigint
+  );
+  useEffect(() => {
+    setCalKBC(KBC_price.toString());
+  }, [BalanceOfKBC.data, BalanceOfStableCoin.data]);
+
   // end conversion
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,7 +88,6 @@ const WriteAbleFun = () => {
     const nodeVal = inputVal * Number(usdVal);
     setNodeQ_val(nodeVal);
   };
-
   const AdminFun = useReadContract({
     abi: contract_abi,
     address: contract_address,
@@ -83,10 +96,10 @@ const WriteAbleFun = () => {
   });
 
   useEffect(() => {
-    // console.log("Its checking Owner Wallet: ", AdminFun);
-    if (contract_current_admin === AdminFun.data) {
-      // console.log("AdminFun.data owner is********");
-      setIsOwner(true);
+    if (address && contract_current_admin) {
+      if (address.toLowerCase() == contract_current_admin.toLowerCase()) {
+        setIsOwner(true);
+      }
     }
   }, []);
 
@@ -112,15 +125,65 @@ const WriteAbleFun = () => {
     abi: contract_abi,
     address: contract_address,
     functionName: "withdrawableROI",
-    args: [address],
+    args: ["0xE8dF0d71928C22f5955f407BbEaE36232Cf83F53"], // address
     config,
   });
 
+  const currRount_val = !isNaN(parseFloat(WithDrawlROIRes.data as string))
+    ? new BigNumber(WithDrawlROIRes.data as number).toString()
+    : 0;
   useEffect(() => {
-    if (WithDrawlROIRes.data) {
-      setWithDrawalROI(withDrawlROI);
+    const withDrawalData = Number(currRount_val);
+    const kbcPrice = Number(KBC_price);
+    if (!isNaN(withDrawalData) && !isNaN(kbcPrice) && kbcPrice !== 0) {
+      // Output: 600000000000000000000000000000000000n
+
+      let valueStr = currRount_val.toString(); //currRount_val.toString();
+
+      if (valueStr.includes(".")) {
+        valueStr = valueStr.split(".")[0];
+      }
+
+      const bigIntValue = BigInt(valueStr);
+
+      const kbcPriceBigInt = KBC_price as BigNumber;
+      const bigIntValueAsBigNumber = bigIntValue.toString() as BigNumber;
+
+      let roi = (bigIntValueAsBigNumber / kbcPriceBigInt).toString();
+      console.log("roi: ", roi.toString());
+      if (roi.includes(".")) {
+        roi = roi.split(".")[0];
+      }
+
+      // const formattedROI = formatEther(roi);
+      // console.log("Formatted ROI: ", formattedROI);
+
+      // setWithDrawalROI(formattedROI);
+      let roiStr = roi.toString();
+
+      // // Remove any fractional part to ensure the value is an integer
+      if (roiStr.includes(".")) {
+        roiStr = roiStr.split(".")[0];
+      }
+
+      const formattedValue = roiStr; //arseEther(roiStr.toString());
+
+      console.log("Formatted ROI: ", formattedValue);
+      setWithDrawalROI(Number(formattedValue ? formattedValue : 0));
+    } else {
+      console.error("Invalid input data", { withDrawalData, kbcPrice });
+      // Handle the error appropriately, for example by setting a default value or showing an error message
+      setWithDrawalROI(0); // Example fallback value
     }
-  }, []);
+
+    // if (WithDrawlROIRes.data) {
+    //   setWithDrawalROI(
+    //     formatEther(
+    //       (Number(WithDrawlROIRes.data) / Number(KBC_price)).toString()
+    //     )
+    //   );
+    // }
+  }, [Number(currRount_val)]);
 
   // register function start
   type RegistrationValues = {
@@ -1010,34 +1073,6 @@ const WriteAbleFun = () => {
           </div>
         </div>
 
-        {/* <div className="col-lg-6">
-          <div className="swap-wrap p-5">
-            <div className="swap-head text-center">Withdrawal ROI</div>
-            <div className="swap1">
-              <div className="swap-box">
-                <div className="node">
-                  <p className="node-title">Withdrawal Balance</p>
-                  <input
-                    className="input-node bg-dashboard form-control ps-2"
-                    value={`${withDrawlROI} KBC`}
-                    type="text"
-                    disabled
-                  />
-                </div>
-                <div className="pay text-center mt-5">
-                  <Button
-                    onClick={withdrawROI}
-                    className="submit-btn"
-                    htmlType="submit"
-                  >
-                    Submit
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div> */}
-
         {/* closeRound (0xe278fe6f)  */}
         {isOwner && (
           <div className="col-lg-6">
@@ -1118,25 +1153,6 @@ const WriteAbleFun = () => {
             </div>
           </div>
         )}
-        {/* withdraw ROI (0xe278fe6f)  */}
-        {/* <div className="col-lg-6">
-          <div className="swap-wrap p-5">
-            <div className="swap-head text-center"> Withdraw ROI</div>
-            <div className="swap">
-              <div className="swap-box">
-                <div className="pay text-center mt-5">
-                  <Button
-                    onClick={withdrawROI}
-                    className="submit-btn"
-                    htmlType="submit"
-                  >
-                    Submit
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div> */}
 
         {/* TopUp function  */}
         <div className="col-lg-6">

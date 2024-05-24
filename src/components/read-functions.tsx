@@ -52,13 +52,15 @@ const Slider = () => {
   //   ? parseFloat(formatEther(KbcPrice.data as BigNumberish)).toFixed(4)
   //   : 0;
 
-    const kbcConverted = convert_usdt_to_kbc(KbcPrice?.data as bigint , BalanceOfStableCoin?.data as bigint)
+  const kbcConverted = convert_usdt_to_kbc(
+    KbcPrice?.data as bigint,
+    BalanceOfStableCoin?.data as bigint
+  );
 
-    // const USD_price = check_usd_price(
-    //   BalanceOfKBC.data as bigint,
-    //   BalanceOfStableCoin.data as bigint
-    // );
-
+  // const USD_price = check_usd_price(
+  //   BalanceOfKBC.data as bigint,
+  //   BalanceOfStableCoin.data as bigint
+  // );
 
   // function 4
   const currRound = useReadContract({
@@ -104,7 +106,9 @@ const Slider = () => {
     ? parseFloat(formatEther(globalPool.data as BigNumberish)).toFixed(4)
     : 0;
   // console.log("globalethValue1: ", globalethValue1, globalethValue1);
-  const globalethValue = (parseFloat(globalethValue1.toString()) / parseFloat(usdVal)).toFixed(4);
+  const globalethValue = (
+    parseFloat(globalethValue1.toString()) / parseFloat(usdVal)
+  ).toFixed(4);
   // function 19
   const stakedUSDT = useReadContract({
     abi: contract_abi,
@@ -125,7 +129,6 @@ const Slider = () => {
     args: [contract_price_pool],
     config,
   });
- 
 
   const USD_price = check_usd_price(
     BalanceOfKBC.data as bigint,
@@ -170,7 +173,7 @@ const Slider = () => {
     },
     {
       value: currUserID_val,
-      funName: "User ID",
+      funName: "Current User ID",
     },
     {
       value: globalethValue,

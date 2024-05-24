@@ -24,6 +24,18 @@ export const check_usd_price = (KBC_bal: bigint, Stable_Balance: bigint) => {
   }
 };
 
+
+// const usdtPrice = KBC_bal * 1e18 / Stable_Balance
+export const check_KBC_Price = (KBC_bal: bigint, Stable_Balance: bigint) => {
+  if (KBC_bal && Stable_Balance) {
+    const factor = BigInt(1e18);
+    const result = (Stable_Balance * factor) / KBC_bal;
+    const ethVal = formatUnits(result, "ether");
+    return ethVal;
+  } else {
+    return 0;
+  }
+};
 export const convert_usdt_to_kbc = (
   KBC_bal: bigint,
   Stable_Balance: bigint
