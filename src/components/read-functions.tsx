@@ -135,7 +135,6 @@ const Slider = () => {
     BalanceOfStableCoin.data as bigint
   );
   useEffect(() => {
-    console.log("Result ******* : ", Number(USD_price));
     setUsdVal(USD_price.toString());
   }, [BalanceOfKBC.data, BalanceOfStableCoin.data]);
 
@@ -154,7 +153,7 @@ const Slider = () => {
 
   const sliderData = [
     {
-      value: InsurancePoolActive.data ? "True" : "False",
+      value: InsurancePoolActive.data ? "Active" : "Inactive",
       funName: "Insurance Pool Active",
     },
     {

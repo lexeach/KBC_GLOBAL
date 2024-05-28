@@ -25,7 +25,6 @@ const Header = () => {
     functionName: "income",
     args: [address],
   });
-
   // const [kbcVal, setKbcVal] = useState<number>(1);
   const [usdVal, setUsdVal] = useState<string>("");
 
@@ -146,10 +145,7 @@ const Header = () => {
   let userDetail: bigint[] = [];
   userDetail = userData?.data as bigint[];
   // console.log("Status now: ",;
-  let stakesTime = userDetail ? Number(userDetail[2]) : 0;
-  // const timestamp = Users.data.stakeTimes; // Example timestamp
-  // const date = new Date(timestamp * 1000);
-  // const currentRoundTime = new Date(Number(CurrRoundStartTime.data) * 1000);
+  let stakesTime = userDetail ? Number(userDetail[11]) : 0;
   const date = new Date(stakesTime * 1000);
 
   const options: Intl.DateTimeFormatOptions = {

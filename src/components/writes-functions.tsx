@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button, Form, Input } from "antd";
+import { Button, Form, Input, message } from "antd";
 import { useAccount, useReadContract } from "wagmi";
 import { parseEther } from "ethers/utils";
 import { BigNumberish } from "ethers";
@@ -32,6 +32,8 @@ const WriteAbleFun = () => {
   const [kbcVal, setKbcVal] = useState<number>(1);
   const [usdVal, setUsdVal] = useState<string>("");
   const [calKBC, setCalKBC] = useState<string>("");
+  const [userId, setUserId] = useState(0);
+  const [userReferrer, setUserReferrer] = useState("");
 
   // setKBCVal;
   const [nodeQ_val, setNodeQ_val] = useState<number>(1);
@@ -125,7 +127,7 @@ const WriteAbleFun = () => {
     abi: contract_abi,
     address: contract_address,
     functionName: "withdrawableROI",
-    args: ["0xE8dF0d71928C22f5955f407BbEaE36232Cf83F53"], // address
+    args: [address], // address
     config,
   });
 
@@ -136,54 +138,51 @@ const WriteAbleFun = () => {
     const withDrawalData = Number(currRount_val);
     const kbcPrice = Number(KBC_price);
     if (!isNaN(withDrawalData) && !isNaN(kbcPrice) && kbcPrice !== 0) {
-      // Output: 600000000000000000000000000000000000n
-
       let valueStr = currRount_val.toString(); //currRount_val.toString();
-
       if (valueStr.includes(".")) {
         valueStr = valueStr.split(".")[0];
       }
-
       const bigIntValue = BigInt(valueStr);
-
       const kbcPriceBigInt = KBC_price as BigNumber;
       const bigIntValueAsBigNumber = bigIntValue.toString() as BigNumber;
 
       let roi = (bigIntValueAsBigNumber / kbcPriceBigInt).toString();
-      console.log("roi: ", roi.toString());
       if (roi.includes(".")) {
         roi = roi.split(".")[0];
       }
 
-      // const formattedROI = formatEther(roi);
-      // console.log("Formatted ROI: ", formattedROI);
-
-      // setWithDrawalROI(formattedROI);
       let roiStr = roi.toString();
-
       // // Remove any fractional part to ensure the value is an integer
       if (roiStr.includes(".")) {
         roiStr = roiStr.split(".")[0];
       }
 
-      const formattedValue = roiStr; //arseEther(roiStr.toString());
+      const formattedValue = formatEther(roiStr as BigNumberish);
 
-      console.log("Formatted ROI: ", formattedValue);
       setWithDrawalROI(Number(formattedValue ? formattedValue : 0));
     } else {
-      console.error("Invalid input data", { withDrawalData, kbcPrice });
       // Handle the error appropriately, for example by setting a default value or showing an error message
       setWithDrawalROI(0); // Example fallback value
     }
-
-    // if (WithDrawlROIRes.data) {
-    //   setWithDrawalROI(
-    //     formatEther(
-    //       (Number(WithDrawlROIRes.data) / Number(KBC_price)).toString()
-    //     )
-    //   );
-    // }
   }, [Number(currRount_val)]);
+
+  const getUserIdFromUrl = () => {
+    const url = window.location.href;
+
+    const paramStartIndex = url.indexOf("?");
+
+    if (paramStartIndex !== -1) {
+      return url.substring(paramStartIndex + 1);
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    const id = getUserIdFromUrl();
+    if (id) {
+      setUserReferrer(id);
+    }
+  }, []);
 
   // register function start
   type RegistrationValues = {
@@ -192,11 +191,6 @@ const WriteAbleFun = () => {
   };
 
   const onFinishReg = async (values: RegistrationValues) => {
-    console.log(
-      " parseEther(nodeQ_val.toString())",
-      parseEther(nodeQ_val.toString()),
-      values.referralId
-    );
     try {
       const { request } = await simulateContract(config, {
         abi: contract_abi,
@@ -205,7 +199,6 @@ const WriteAbleFun = () => {
         args: [values.referralId],
         value: parseEther(nodeQ_val.toString()),
       });
-      console.log("Request :", request);
 
       const hash = await writeContract(config, request);
       console.log("hash", hash);
@@ -225,13 +218,10 @@ const WriteAbleFun = () => {
   const withdrawROI = async () => {
     if (address) {
       try {
-        // console.log("values", values);
-
         const { request } = await simulateContract(config, {
           abi: contract_abi,
           address: contract_address,
           functionName: "withdrawROI",
-          // value: parseEther("0.001"),
         });
         const hash = await writeContract(config, request);
         console.log("hash", hash);
@@ -450,13 +440,16 @@ const WriteAbleFun = () => {
 
   //start TopUp function
   const onFinishtopup = async (values: ITopUp) => {
+    console.log(
+      "parseEther(values.payableamount): ",
+      parseEther(values.payableamount)
+    );
     if (address) {
       try {
         const { request } = await simulateContract(config, {
           abi: contract_abi,
           address: contract_address,
           functionName: "topUp",
-          args: [values.amount],
           value: parseEther(values.payableamount),
         });
         const hash = await writeContract(config, request);
@@ -477,6 +470,19 @@ const WriteAbleFun = () => {
     }
   };
 
+  const copyRefferalLink = (values) => {
+    const referralLink = `http://localhost:5173?${userId}`;
+    navigator.clipboard
+      .writeText(referralLink)
+      .then(() => {
+        message.success("Referral link copied to clipboard!");
+      })
+      .catch((err) => {
+        message.error("Failed to copy referral link.");
+        console.error("Error copying to clipboard:", err);
+      });
+  };
+
   //   // end TopUp function
   //   // withdralCoin
   // type WithdralCoin = {
@@ -493,7 +499,6 @@ const WriteAbleFun = () => {
   const onsetRoundCloserAddress = async (values: CloserAddress) => {
     if (address) {
       try {
-        console.log("Value is: ", values.address);
         const { request } = await simulateContract(config, {
           abi: contract_abi,
           address: contract_address,
@@ -529,6 +534,19 @@ const WriteAbleFun = () => {
     config,
   });
 
+  // const usersCT = useReadContract({
+  //   abi: contract_abi,
+  //   address: contract_address,
+  //   functionName: "users",
+  //   args: [address],
+  //   config,
+  // });
+
+  let assingUserId = usersCT.data ? usersCT.data[1] : 0;
+  useEffect(() => {
+    setUserId(assingUserId);
+  }, [assingUserId]);
+
   let usersCTRes: bigint[] = [];
   usersCTRes = usersCT?.data as bigint[];
 
@@ -552,11 +570,6 @@ const WriteAbleFun = () => {
 
   let userTurnOverRes: bigint[] = [];
   userTurnOverRes = userTurnOver?.data as bigint[];
-  // console.log(
-  //   "Rurn Over Value: ",
-  //   parseFloat(formatEther(userTurnOverRes.toString())).toFixed(4),
-  //   userTurnOverRes
-  // );
 
   // const [rewardInfoRank, setRewardInfoRank] = useState(0)
   const kbcrewardInfo = [
@@ -748,7 +761,7 @@ const WriteAbleFun = () => {
   return (
     <>
       <div className="row px-5">
-        <div className="col-lg-6">
+        {/* <div className="col-lg-6">
           <div className="d-flex justify-content-center mt-4">
             <div className="network-heading text-center rounded-top-2">
               KBC reward info
@@ -781,7 +794,7 @@ const WriteAbleFun = () => {
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
         {/* Register function  */}
         <div className="col-lg-6 mt-4">
           <div className="swap-wrap p-5 mt-40 position-relative">
@@ -816,7 +829,7 @@ const WriteAbleFun = () => {
                   autoComplete="off"
                 >
                   <Form.Item
-                    label="Node Quantity"
+                    label="Enter Amount"
                     name="nodeQuantity"
                     rules={[
                       {
@@ -845,44 +858,11 @@ const WriteAbleFun = () => {
                       },
                     ]}
                   >
-                    <Input className="input_filed" placeholder="Enter ID" />
-                  </Form.Item>
-                  <Form.Item className="text-center">
-                    <Button className="submit-btn" htmlType="submit">
-                      Submit
-                    </Button>
-                  </Form.Item>
-                </Form>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Fund Global  */}
-        <div className="col-lg-6">
-          <div className="swap-wrap p-5 mt-45">
-            <div className="swap-head text-center">Fund Global:</div>
-            <div className="swap1">
-              <div className="swap-box">
-                <Form
-                  {...formItemLayout}
-                  name="fundGlobal"
-                  onFinish={onFinishfundGlobal}
-                  autoComplete="off"
-                >
-                  <Form.Item
-                    label="Payable Amount"
-                    name="payableAmount"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please input your payable amount!",
-                      },
-                    ]}
-                  >
                     <Input
                       className="input_filed"
-                      placeholder="Payable Amount"
+                      placeholder={userReferrer ? userReferrer : "Enter ID"}
+                      value={userReferrer}
+                      onChange={(e) => setUserReferrer(e.target.value)}
                     />
                   </Form.Item>
                   <Form.Item className="text-center">
@@ -895,35 +875,44 @@ const WriteAbleFun = () => {
             </div>
           </div>
         </div>
-
-        {/* Fund Insurance Pool  */}
+        {/* TopUp function  */}
         <div className="col-lg-6">
           <div className="swap-wrap p-5">
-            <div className="swap-head text-center">Insurance Pool:</div>
+            <div className="swap-head text-center">Top Up</div>
             <div className="swap1">
               <div className="swap-box">
                 <Form
                   {...formItemLayout}
-                  name="InsurancePool"
-                  onFinish={onFinishInsurancePool}
-                  // onFinishFailed={onFinishFailedInsurancePool}
+                  name="topup"
+                  onFinish={onFinishtopup}
+                  // onFinishFailed={onFinishFailedtopup}
                   autoComplete="off"
                 >
                   <Form.Item
                     label="Payable Amount"
-                    name="payableAmount"
+                    name="payableamount"
                     rules={[
                       {
                         required: true,
-                        message: "Please input your payable amount!",
+                        message: "Please input your payableamount!",
+                      },
+                    ]}
+                    className="node-title"
+                  >
+                    <Input className="input_filed" placeholder="" />
+                  </Form.Item>
+                  {/* <Form.Item
+                    label="Amount"
+                    name="amount"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Please input your amount!",
                       },
                     ]}
                   >
-                    <Input
-                      className="input_filed"
-                      placeholder="Payable Amount"
-                    />
-                  </Form.Item>
+                    <Input className="input_filed" placeholder="Amount" />
+                  </Form.Item> */}
                   <Form.Item className="text-center">
                     <Button className="submit-btn" htmlType="submit">
                       Submit
@@ -933,10 +922,6 @@ const WriteAbleFun = () => {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Fund Set KBC price  */}
-        <div className="col-lg-6">
           <div className="swap-wrap p-5">
             <div className="swap-head text-center">Withdraw Reward</div>
             <div className="swap1">
@@ -957,7 +942,7 @@ const WriteAbleFun = () => {
                       },
                     ]}
                   >
-                    <Input className="input_filed" placeholder="price" />
+                    <Input className="input_filed" placeholder="" />
                   </Form.Item>
                   <Form.Item className="text-center">
                     <Button className="submit-btn" htmlType="submit">
@@ -969,7 +954,7 @@ const WriteAbleFun = () => {
             </div>
           </div>
         </div>
-        {/* withDrawal Income  */}
+
         {isOwner && (
           <div className="col-lg-6">
             <div className="swap-wrap p-5">
@@ -1154,46 +1139,98 @@ const WriteAbleFun = () => {
           </div>
         )}
 
-        {/* TopUp function  */}
+        {/* Share Your Referral */}
+        {userId > 0 && (
+          <div className="col-lg-6">
+            <div className="swap-wrap p-5">
+              <div className="swap-head text-center">Share Your Referral</div>
+              <div className="swap1">
+                <div className="swap-box">
+                  <Form
+                    {...formItemLayout}
+                    name="referralLink"
+                    onFinish={copyRefferalLink}
+                    autoComplete="off"
+                  >
+                    <Form.Item label="Referral Link" name="referralLink">
+                      <Input
+                        className="input_filed disable-to"
+                        value={`"http://127.0.0.1:5501?"${userId}`}
+                        placeholder={`http://127.0.0.1:5501?${userId}`}
+                        // disabled
+                      />
+                    </Form.Item>
+                    <Form.Item className="text-center">
+                      <Button className="submit-btn" htmlType="submit">
+                        Copy Refferal Link
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Fund Global  */}
         <div className="col-lg-6">
-          <div className="swap-wrap p-5">
-            <div className="swap-head text-center">Top Up</div>
-            <div className="swap">
+          <div className="swap-wrap p-5 mt-45">
+            <div className="swap-head text-center">Donate Global Pool</div>
+            <div className="swap1">
               <div className="swap-box">
                 <Form
                   {...formItemLayout}
-                  name="topup"
-                  onFinish={onFinishtopup}
-                  // onFinishFailed={onFinishFailedtopup}
+                  name="fundGlobal"
+                  onFinish={onFinishfundGlobal}
                   autoComplete="off"
                 >
                   <Form.Item
                     label="Payable Amount"
-                    name="payableamount"
+                    name="payableAmount"
                     rules={[
                       {
                         required: true,
-                        message: "Please input your payableamount!",
+                        message: "Please input your payable amount!",
                       },
                     ]}
-                    className="node-title"
                   >
-                    <Input
-                      className="input_filed"
-                      placeholder="Payable Amount (ether)"
-                    />
+                    <Input className="input_filed" placeholder="" />
                   </Form.Item>
+                  <Form.Item className="text-center">
+                    <Button className="submit-btn" htmlType="submit">
+                      Submit
+                    </Button>
+                  </Form.Item>
+                </Form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Fund Insurance Pool  */}
+        <div className="col-lg-6">
+          <div className="swap-wrap p-5">
+            <div className="swap-head text-center">Donate Insurance</div>
+            <div className="swap1">
+              <div className="swap-box">
+                <Form
+                  {...formItemLayout}
+                  name="InsurancePool"
+                  onFinish={onFinishInsurancePool}
+                  // onFinishFailed={onFinishFailedInsurancePool}
+                  autoComplete="off"
+                >
                   <Form.Item
-                    label="Amount"
-                    name="amount"
+                    label="Payable Amount"
+                    name="payableAmount"
                     rules={[
                       {
                         required: true,
-                        message: "Please input your amount!",
+                        message: "Please input your payable amount!",
                       },
                     ]}
                   >
-                    <Input className="input_filed" placeholder="Amount" />
+                    <Input className="input_filed" placeholder="" />
                   </Form.Item>
                   <Form.Item className="text-center">
                     <Button className="submit-btn" htmlType="submit">
